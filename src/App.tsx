@@ -1,4 +1,5 @@
 import { FileCheck2, FileSearch, Library, Loader2, UploadCloud } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useMemo, useRef, useState } from 'react';
 import { buildFindings, crossReferenceFindings, extractPdfText } from './services/pdfReviewAgent';
 import type { CrossReference, ReviewFinding } from './types';
@@ -111,7 +112,7 @@ export default function App() {
   );
 }
 
-function ReviewStep({ icon, label, active, done }: { icon: React.ReactNode; label: string; active: boolean; done: boolean }) {
+function ReviewStep({ icon, label, active, done }: { icon: ReactNode; label: string; active: boolean; done: boolean }) {
   return (
     <div className={`review-step ${active ? 'active' : ''} ${done ? 'done' : ''}`}>
       <span className="step-icon">{active ? <Loader2 className="spin" size={18} /> : icon}</span>
