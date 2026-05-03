@@ -1,0 +1,298 @@
+:root {
+  color: #18201e;
+  background: #eef2f0;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.app-shell {
+  min-height: 100vh;
+  padding: 32px;
+}
+
+.workspace-header {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 24px;
+  margin: 0 auto 24px;
+  max-width: 1480px;
+}
+
+.eyebrow {
+  color: #52605b;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
+  margin: 0 0 8px;
+  text-transform: uppercase;
+}
+
+h1 {
+  color: #111816;
+  font-size: 34px;
+  line-height: 1.08;
+  margin: 0;
+  max-width: 720px;
+}
+
+.status-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(92px, 1fr));
+  gap: 8px;
+}
+
+.metric {
+  background: #ffffff;
+  border: 1px solid #dce4e0;
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.metric span {
+  color: #66736f;
+  display: block;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.metric strong {
+  color: #101614;
+  font-size: 22px;
+}
+
+.review-layout {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: 320px minmax(0, 1fr);
+  margin: 0 auto;
+  max-width: 1480px;
+}
+
+.control-panel {
+  align-self: start;
+  background: #ffffff;
+  border: 1px solid #dce4e0;
+  border-radius: 8px;
+  display: grid;
+  gap: 18px;
+  padding: 16px;
+}
+
+.upload-zone {
+  align-items: center;
+  background: #f7faf8;
+  border: 1px dashed #8aa299;
+  border-radius: 8px;
+  color: #1f3c34;
+  cursor: pointer;
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  min-height: 148px;
+  padding: 18px;
+  text-align: center;
+}
+
+.upload-zone:hover {
+  background: #f0f7f4;
+  border-color: #2d6f5e;
+}
+
+.upload-zone span {
+  max-width: 240px;
+  overflow-wrap: anywhere;
+}
+
+.step-list {
+  display: grid;
+  gap: 8px;
+}
+
+.review-step {
+  align-items: center;
+  border: 1px solid #e3e8e5;
+  border-radius: 8px;
+  color: #53605c;
+  display: flex;
+  gap: 10px;
+  min-height: 44px;
+  padding: 10px 12px;
+}
+
+.review-step.active {
+  background: #fff8e8;
+  border-color: #e8c46b;
+  color: #6a4a05;
+}
+
+.review-step.done {
+  background: #eef8f3;
+  border-color: #9ac9b8;
+  color: #245546;
+}
+
+.step-icon {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
+  width: 22px;
+}
+
+.primary-action {
+  align-items: center;
+  background: #173f35;
+  border: 0;
+  border-radius: 8px;
+  color: #ffffff;
+  cursor: pointer;
+  display: inline-flex;
+  gap: 8px;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 14px;
+}
+
+.primary-action:disabled {
+  background: #aab7b2;
+  cursor: not-allowed;
+}
+
+.error-banner {
+  background: #fff1ed;
+  border: 1px solid #f0b8a8;
+  border-radius: 8px;
+  color: #8c2b16;
+  font-size: 14px;
+  padding: 12px;
+}
+
+.table-stack {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.table-card {
+  background: #ffffff;
+  border: 1px solid #dce4e0;
+  border-radius: 8px;
+  min-height: 420px;
+  overflow: auto;
+}
+
+.table-card.compact {
+  min-height: 220px;
+}
+
+table {
+  border-collapse: collapse;
+  min-width: 1050px;
+  width: 100%;
+}
+
+th,
+td {
+  border-bottom: 1px solid #e9eeeb;
+  padding: 13px 14px;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  background: #f7f9f8;
+  color: #45504d;
+  font-size: 12px;
+  font-weight: 800;
+  position: sticky;
+  text-transform: uppercase;
+  top: 0;
+  z-index: 1;
+}
+
+td {
+  color: #1e2724;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+td:nth-child(1),
+td:nth-child(4),
+td:nth-child(6) {
+  color: #36524a;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+.sr-only {
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  position: absolute;
+  width: 1px;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 920px) {
+  .app-shell {
+    padding: 18px;
+  }
+
+  .workspace-header,
+  .review-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .workspace-header {
+    align-items: stretch;
+    display: grid;
+  }
+
+  .status-strip {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  h1 {
+    font-size: 28px;
+  }
+}
+
+@media (max-width: 560px) {
+  .status-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .review-layout {
+    gap: 14px;
+  }
+
+  h1 {
+    font-size: 24px;
+  }
+}
