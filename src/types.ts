@@ -34,6 +34,9 @@ export type LibraryReference = {
   keywords: string[];
   summary: string;
   source: string;
+  driveFileId?: string;
+  driveUrl?: string;
+  lastIndexed?: string;
 };
 
 export type CrossReference = {
@@ -46,4 +49,25 @@ export type CrossReference = {
   relevance: number;
   reason: string;
   source: string;
+};
+
+export type ReviewSession = {
+  id: string;
+  fileName: string;
+  createdAt: string;
+  findingCount: number;
+  matchCount: number;
+  findings: ReviewFinding[];
+  references: CrossReference[];
+};
+
+export type LibraryDocument = {
+  id: string;
+  title: string;
+  fileName: string;
+  driveFileId: string;
+  driveUrl: string;
+  indexedAt: string;
+  status: 'Indexed' | 'Backend required';
+  reference: LibraryReference;
 };
