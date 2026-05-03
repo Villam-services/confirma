@@ -1,7 +1,6 @@
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
-import { referenceLibrary } from '../data/referenceLibrary';
-import type { CrossReference, FindingCategory, PdfPageText, ReviewFinding } from '../types';
+import type { CrossReference, FindingCategory, LibraryReference, PdfPageText, ReviewFinding } from '../types';
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 
@@ -86,10 +85,10 @@ export function buildFindings(pages: PdfPageText[]): ReviewFinding[] {
   });
 }
 
-export function crossReferenceFindings(findings: ReviewFinding[]): CrossReference[] {
+export function crossReferenceFindings(findings: ReviewFinding[], library: LibraryReference[]): CrossReference[] {
   return findings
     .flatMap((finding) =>
-      referenceLibrary
+      library
         .map((reference) => ({ reference, relevance: calculateRelevance(finding, reference.keywords, reference.category) }))
         .filter((match) => match.relevance >= 28)
         .sort((left, right) => right.relevance - left.relevance)
@@ -117,7 +116,7 @@ function splitIntoStatements(text: string): string[] {
 }
 
 function cleanStatement(statement: string): string {
-  return statement.replace(/\s+/g, ' ').replace(/^[-*•\d.\s]+/, '').trim();
+  return statement.replace(/\s+/g, ' ').replace(/^[-*\d.\s]+/, '').trim();
 }
 
 function scoreStatement(statement: string): number {
@@ -152,7 +151,7 @@ function extractTopic(statement: string, category: FindingCategory): string {
 }
 
 function extractEngineeringValue(statement: string): string {
-  const matches = statement.match(/\b\d+(\.\d+)?\s?(mm|cm|m|kpa|mpa|kn|kg|%|hr|h|l\/s|m3\/s|psi|ft|in|degrees?|°c|°f)\b/gi);
+  const matches = statement.match(/\b\d+(\.\d+)?\s?(mm|cm|m|kpa|mpa|kn|kg|%|hr|h|l\/s|m3\/s|psi|ft|in|degrees?)\b/gi);
   if (matches?.length) return Array.from(new Set(matches)).slice(0, 4).join(', ');
 
   const modalMatch = statement.match(/\b(shall|must|required|minimum|maximum|not less than|not greater than)\b/i)?.[0];
