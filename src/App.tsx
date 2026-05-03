@@ -1,26 +1,39 @@
-import { FileCheck2, FileSearch, Library, Loader2, UploadCloud } from 'lucide-react';
+import { Clock3, Database, FileCheck2, FileSearch, FolderSync, History, Library, Loader2, UploadCloud } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { DRIVE_LIBRARY_FOLDER_URL, driveLibraryDocuments } from './data/driveLibrary';
+import { referenceLibrary } from './data/referenceLibrary';
 import { buildFindings, crossReferenceFindings, extractPdfText } from './services/pdfReviewAgent';
-import type { CrossReference, ReviewFinding } from './types';
+import { clearSessions, loadSessions, saveSession } from './services/sessionStore';
+import type { CrossReference, LibraryReference, ReviewFinding, ReviewSession } from './types';
 
 type Step = 'idle' | 'reviewing' | 'reviewed' | 'matching';
+type ActiveTab = 'review' | 'history' | 'library';
+
+const fullReferenceLibrary: LibraryReference[] = [...driveLibraryDocuments.map((document) => document.reference), ...referenceLibrary];
 
 export default function App() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState('');
   const [step, setStep] = useState<Step>('idle');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('review');
   const [findings, setFindings] = useState<ReviewFinding[]>([]);
   const [references, setReferences] = useState<CrossReference[]>([]);
+  const [sessions, setSessions] = useState<ReviewSession[]>([]);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    setSessions(loadSessions());
+  }, []);
 
   const stats = useMemo(
     () => [
       { label: 'Findings', value: findings.length.toString() },
       { label: 'Sources', value: new Set(findings.map((finding) => finding.sourcePage)).size.toString() },
       { label: 'Matches', value: references.length.toString() },
+      { label: 'History', value: sessions.length.toString() },
     ],
-    [findings, references],
+    [findings, references, sessions],
   );
 
   async function handleFile(file?: File) {
@@ -30,6 +43,7 @@ export default function App() {
     setReferences([]);
     setFindings([]);
     setFileName(file.name);
+    setActiveTab('review');
 
     if (file.type !== 'application/pdf') {
       setError('Please upload a PDF file.');
@@ -43,6 +57,7 @@ export default function App() {
       const nextFindings = buildFindings(pages);
       setFindings(nextFindings);
       setStep('reviewed');
+      persistSession(file.name, nextFindings, []);
     } catch {
       setError('The PDF could not be reviewed. Try a text-based PDF or upload a clearer file.');
       setStep('idle');
@@ -51,9 +66,32 @@ export default function App() {
 
   function runCrossReference() {
     setStep('matching');
-    const matches = crossReferenceFindings(findings);
+    const matches = crossReferenceFindings(findings, fullReferenceLibrary);
     setReferences(matches);
     setStep('reviewed');
+    persistSession(fileName || 'Untitled PDF', findings, matches);
+  }
+
+  function persistSession(name: string, nextFindings: ReviewFinding[], nextReferences: CrossReference[]) {
+    const session: ReviewSession = {
+      id: `${Date.now()}-${name}`,
+      fileName: name,
+      createdAt: new Date().toISOString(),
+      findingCount: nextFindings.length,
+      matchCount: nextReferences.length,
+      findings: nextFindings,
+      references: nextReferences,
+    };
+    setSessions(saveSession(session));
+  }
+
+  function restoreSession(session: ReviewSession) {
+    setFileName(session.fileName);
+    setFindings(session.findings);
+    setReferences(session.references);
+    setStep('reviewed');
+    setActiveTab('review');
+    setError('');
   }
 
   const busy = step === 'reviewing' || step === 'matching';
@@ -62,7 +100,7 @@ export default function App() {
     <main className="app-shell">
       <section className="workspace-header">
         <div>
-          <p className="eyebrow">Confirma Engineering Review</p>
+          <p className="eyebrow">ConfirmaGPT Engineering Review</p>
           <h1>PDF criteria, code, and standards review</h1>
         </div>
         <div className="status-strip" aria-label="Review metrics">
@@ -89,10 +127,16 @@ export default function App() {
             onChange={(event) => handleFile(event.target.files?.[0])}
           />
 
+          <div className="tab-list" aria-label="Workspace tabs">
+            <TabButton icon={<FileSearch size={17} />} label="Review" active={activeTab === 'review'} onClick={() => setActiveTab('review')} />
+            <TabButton icon={<History size={17} />} label="History" active={activeTab === 'history'} onClick={() => setActiveTab('history')} />
+            <TabButton icon={<Database size={17} />} label="Library" active={activeTab === 'library'} onClick={() => setActiveTab('library')} />
+          </div>
+
           <div className="step-list" aria-label="Review steps">
             <ReviewStep icon={<FileSearch size={18} />} label="Extract source-backed findings" active={step === 'reviewing'} done={findings.length > 0} />
-            <ReviewStep icon={<Library size={18} />} label="Cross-reference library" active={step === 'matching'} done={references.length > 0} />
-            <ReviewStep icon={<FileCheck2 size={18} />} label="Table-only reporting" active={false} done={findings.length > 0} />
+            <ReviewStep icon={<Library size={18} />} label="Cross-reference Drive library" active={step === 'matching'} done={references.length > 0} />
+            <ReviewStep icon={<FileCheck2 size={18} />} label="Session saved" active={false} done={sessions.length > 0} />
           </div>
 
           <button className="primary-action" type="button" disabled={!findings.length || busy} onClick={runCrossReference}>
@@ -103,12 +147,27 @@ export default function App() {
           {error ? <div className="error-banner">{error}</div> : null}
         </aside>
 
-        <section className="table-stack" aria-label="Review results">
-          <FindingTable findings={findings} busy={step === 'reviewing'} />
-          {references.length > 0 ? <ReferenceTable references={references} /> : null}
+        <section className="table-stack" aria-label="Workspace">
+          {activeTab === 'review' ? (
+            <>
+              <FindingTable findings={findings} busy={step === 'reviewing'} />
+              {references.length > 0 ? <ReferenceTable references={references} /> : null}
+            </>
+          ) : null}
+          {activeTab === 'history' ? <HistoryPanel sessions={sessions} onRestore={restoreSession} onClear={() => setSessions(clearSessions())} /> : null}
+          {activeTab === 'library' ? <LibraryPanel /> : null}
         </section>
       </section>
     </main>
+  );
+}
+
+function TabButton({ icon, label, active, onClick }: { icon: ReactNode; label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button className={`tab-button ${active ? 'active' : ''}`} type="button" onClick={onClick}>
+      {icon}
+      {label}
+    </button>
   );
 }
 
@@ -168,7 +227,7 @@ function ReferenceTable({ references }: { references: CrossReference[] }) {
             <th>Reference</th>
             <th>Authority</th>
             <th>Jurisdiction</th>
-            <th>Relevance</th>
+            <th>Match</th>
             <th>Source</th>
           </tr>
         </thead>
@@ -181,6 +240,94 @@ function ReferenceTable({ references }: { references: CrossReference[] }) {
               <td>{reference.jurisdiction}</td>
               <td>{reference.relevance}%</td>
               <td>{reference.source}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function HistoryPanel({ sessions, onRestore, onClear }: { sessions: ReviewSession[]; onRestore: (session: ReviewSession) => void; onClear: () => void }) {
+  const rows = sessions.length ? sessions : [{ id: 'empty', fileName: 'No saved sessions', createdAt: '', findingCount: 0, matchCount: 0, findings: [], references: [] }];
+
+  return (
+    <div className="table-card history-card">
+      <div className="panel-toolbar">
+        <div>
+          <strong>Session history</strong>
+          <span>Saved in this browser for previously reviewed files.</span>
+        </div>
+        <button className="secondary-action" type="button" disabled={!sessions.length} onClick={onClear}>
+          Clear history
+        </button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>File</th>
+            <th>Reviewed</th>
+            <th>Findings</th>
+            <th>Matches</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((session) => (
+            <tr key={session.id}>
+              <td>{session.fileName}</td>
+              <td>{session.createdAt ? new Date(session.createdAt).toLocaleString() : '-'}</td>
+              <td>{session.findingCount}</td>
+              <td>{session.matchCount}</td>
+              <td>
+                {session.findings.length ? (
+                  <button className="table-action" type="button" onClick={() => onRestore(session)}>
+                    <Clock3 size={15} />
+                    Load
+                  </button>
+                ) : (
+                  '-'
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function LibraryPanel() {
+  return (
+    <div className="table-card library-card">
+      <div className="panel-toolbar">
+        <div>
+          <strong>Standards library</strong>
+          <span>{DRIVE_LIBRARY_FOLDER_URL}</span>
+        </div>
+        <a className="secondary-link" href={DRIVE_LIBRARY_FOLDER_URL} target="_blank" rel="noreferrer">
+          <FolderSync size={15} />
+          Open Drive
+        </a>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>File</th>
+            <th>Authority</th>
+            <th>Category</th>
+            <th>Index status</th>
+            <th>Matching basis</th>
+          </tr>
+        </thead>
+        <tbody>
+          {driveLibraryDocuments.map((document) => (
+            <tr key={document.id}>
+              <td>{document.fileName}</td>
+              <td>{document.reference.authority}</td>
+              <td>{document.reference.category}</td>
+              <td>{document.status}</td>
+              <td>{document.reference.keywords.slice(0, 8).join(', ')}</td>
             </tr>
           ))}
         </tbody>
